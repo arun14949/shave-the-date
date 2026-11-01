@@ -1,0 +1,11 @@
+.venv/
+node_modules/
+__pycache__/
+.DS_Store
+dist/
+*.zip
+tools/models/*.task
+# Local secrets written by `elevenlabs onboard` or other tooling
+.env
+.env.*
+!.env.example

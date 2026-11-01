@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#8c9199" />
+    <meta name="description" content="Help Aakash groom for his wedding and share the look you create." />
+    <title>Shave the Date</title>
+    <link rel="stylesheet" href="/src/style.css?v=39" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="app">
+      <main class="game-shell">
+        <header class="hero-copy">
+          <h1 aria-label="Shave the Date">S<em>h</em>ave the Date</h1>
+          <p>Aakash is getting married. His beard didn’t make the guest list.</p>
+        </header>
+        <div id="scene" class="scene" aria-label="Interactive portrait of Aakash">
+          <div id="portrait-stage" class="portrait-stage">
+            <img id="base-photo" src="/assets/source/aakash-bald-generated.png" alt="Aakash's portrait" draggable="false" />
+            <canvas id="eye-layer" width="1086" height="1448" aria-hidden="true"></canvas>
+            <canvas id="sideburn-clean-layer" width="1086" height="1448" aria-hidden="true"></canvas>
+            <canvas id="hair-fine-layer" width="1086" height="1448" aria-hidden="true"></canvas>
+            <canvas id="hair-buzz-layer" width="1086" height="1448" aria-hidden="true"></canvas>
+            <canvas id="hair-stubble-layer" width="1086" height="1448" aria-hidden="true"></canvas>
+            <canvas id="hair-short-layer" width="1086" height="1448" aria-hidden="true"></canvas>
+            <canvas id="hair-medium-layer" width="1086" height="1448" aria-hidden="true"></canvas>
+            <canvas id="hair-layer" width="1086" height="1448" aria-hidden="true"></canvas>
+            <canvas id="beard-short-layer" width="1086" height="1448" aria-hidden="true"></canvas>
+            <canvas id="beard-full-layer" width="1086" height="1448" aria-hidden="true"></canvas>
+            <canvas id="beard-thick-layer" width="1086" height="1448" aria-hidden="true"></canvas>
+            <canvas id="cut-layer" width="1086" height="1448" aria-hidden="true"></canvas>
+            <canvas id="clippings-layer" width="1086" height="1448" aria-hidden="true"></canvas>
+            <canvas id="preview-layer" width="1086" height="1448" aria-hidden="true"></canvas>
+            <canvas id="water-spray-layer" width="1086" height="1448" aria-hidden="true"></canvas>
+          </div>
+        </div>
+        <div id="loading" class="loading" role="status" aria-label="Loading Aakash's portrait"><span class="spinner" aria-hidden="true"></span></div>
+        <div id="cursor-tool" class="cursor-tool" aria-hidden="true"><img id="cursor-image" src="/assets/trimmer-cursor-small.png" alt="" draggable="false" /></div>
+        <div class="start-dock" role="group" aria-label="Start grooming">
+          <button id="start-button" class="start-button" type="button" disabled>Open the barbershop <span aria-hidden="true">↗</span></button>
+        </div>
+        <div class="tool-dock" role="group" aria-label="Grooming tools" hidden>
+          <div id="trimmer-guards" class="trimmer-guards" role="group" aria-label="Trimmer guard length" hidden>
+            <span class="guard-label">Trimmer guard</span>
+            <div class="guard-options">
+              <button type="button" data-guard="1" aria-pressed="false">1 mm</button>
+              <button type="button" data-guard="2" aria-pressed="false">2 mm</button>
+              <button type="button" data-guard="3" aria-pressed="false">3 mm</button>
+              <button type="button" data-guard="4" aria-pressed="true">4 mm</button>
+            </div>
+          </div>
+          <button id="tool-scissors" class="tool-button" type="button" aria-pressed="false" aria-label="Select scissors">
+            <svg viewBox="0 0 32 32" aria-hidden="true">
+              <path d="M15.4 15.9 26.3 3.2c.8-.9 2.1-.2 1.7.9L21 18.8l-3.1 2.7-2.5-5.6ZM16.6 15.9 5.7 3.2c-.8-.9-2.1-.2-1.7.9L11 18.8l3.1 2.7 2.5-5.6Z" fill="currentColor" stroke="none"/>
+              <path d="M15.2 17.6 10 23M16.8 17.6l5.2 5" fill="none" stroke="currentColor" stroke-width="3.8" stroke-linecap="round"/>
+              <circle cx="8.1" cy="24.3" r="5.1" fill="currentColor" stroke="none"/><circle cx="23.9" cy="24.3" r="5.1" fill="currentColor" stroke="none"/>
+              <circle cx="8.1" cy="24.3" r="2.25" fill="var(--cream)" stroke="none"/><circle cx="23.9" cy="24.3" r="2.25" fill="var(--cream)" stroke="none"/>
+              <circle cx="16" cy="16.9" r="2.4" fill="currentColor" stroke="none"/><circle cx="16" cy="16.9" r=".8" fill="var(--cream)" stroke="none"/>
+              <path d="m23.5 6.8-4.7 5.5M8.5 6.8l4.7 5.5" fill="none" stroke="var(--cream)" stroke-width=".85" stroke-linecap="round"/>
+            </svg>
+            <span>Scissors</span>
+          </button>
+          <button id="tool-trimmer" class="tool-button" type="button" aria-pressed="false" aria-label="Select trimmer">
+            <svg viewBox="0 0 32 32" aria-hidden="true">
+              <path d="M10 10h12v16.5a3 3 0 0 1-3 3h-6a3 3 0 0 1-3-3V10Z" fill="currentColor" stroke="none"/>
+              <path d="M7 7.5h18v4H7zM9 4h14v3.5H9z" fill="currentColor" stroke="none"/>
+              <path d="M9.5 2v2.4m3.2-2.4v2.4M16 2v2.4m3.3-2.4v2.4M22.5 2v2.4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M11.9 13h8.2v10.4h-8.2z" fill="var(--cream)" stroke="none"/>
+              <path d="M13.2 14.5h5.6v7.4h-5.6z" fill="currentColor" stroke="none"/>
+              <path d="M12.4 25.6h7.2M9.5 9.4h13" fill="none" stroke="var(--cream)" stroke-width="1.1" stroke-linecap="round"/>
+            </svg>
+            <span>Trimmer</span>
+          </button>
+          <button id="tool-blade" class="tool-button" type="button" aria-pressed="false" aria-label="Select shaving blade">
+            <svg viewBox="0 0 32 32" aria-hidden="true">
+              <path d="M6 8c.9-2 2.5-3 4.8-3h10.4c2.3 0 3.9 1 4.8 3H6ZM4 9h24v4H4zM5.5 13h21l-2.2 3.5H7.7L5.5 13ZM13.5 16.5h5v11h-5z" fill="currentColor" stroke="none"/>
+              <path d="M8 10.8h16M14.8 20.5h2.4m-2.4 2.6h2.4m-2.4 2.6h2.4" fill="none" stroke="var(--cream)" stroke-width="1.15"/>
+              <path d="M12.5 28.5h7" fill="none"/>
+            </svg>
+            <span>Blade</span>
+          </button>
+          <button id="music-toggle" class="tool-button music-toggle" type="button" aria-label="Open music" aria-controls="barbershop-radio" aria-expanded="false">
+            <svg viewBox="0 0 32 32" aria-hidden="true">
+              <path d="M12 6.6 27 3v17.8h-3.4V8.8l-8.2 2v13.6H12V6.6Z" fill="currentColor" stroke="none"/>
+              <path d="M12 6.6 27 3v4l-15 3.6v-4Z" fill="currentColor" stroke="none"/>
+              <path d="m14 8 11-2.7" fill="none" stroke="var(--cream)" stroke-width="1.1" stroke-linecap="round"/>
+              <ellipse cx="9" cy="24.7" rx="5" ry="3.5" transform="rotate(-18 9 24.7)" fill="currentColor" stroke="none"/>
+              <ellipse cx="22" cy="21.4" rx="5" ry="3.5" transform="rotate(-18 22 21.4)" fill="currentColor" stroke="none"/>
+              <path d="M6.7 25.2c1.2-1 2.4-1.2 3.5-1.1M19.7 21.9c1.2-1 2.4-1.2 3.5-1.1" fill="none" stroke="var(--cream)" stroke-width=".8" stroke-linecap="round"/>
+            </svg>
+            <span>Music</span>
+          </button>
+          <button id="share-button" class="share-button" type="button">Share this look <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M18 4h10v10h-3V9.1L7.1 27 5 24.9 22.9 7H18V4Z" fill="currentColor" stroke="none"/><path d="M21 6h5v5" fill="none" stroke="var(--cream)" stroke-width=".9" stroke-linecap="round"/></svg></button>
+        </div>
+        <p id="status-text" class="sr-only" role="status">Drag over Aakash’s hair or beard to groom him.</p>
+      </main>
+      <div id="radio-backdrop" class="radio-backdrop" hidden></div>
+      <section id="barbershop-radio" class="barbershop-radio" role="dialog" aria-label="Barbershop radio" aria-hidden="true" inert>
+        <div class="radio-grab" aria-hidden="true"></div>
+        <div class="radio-heading">
+          <div><span class="radio-kicker">Aakash's barbershop</span><h2>Barbershop radio</h2></div>
+          <button id="radio-close" type="button" aria-label="Close music"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 5l14 14M19 5 5 19"/></svg></button>
+        </div>
+        <div class="radio-player">
+          <div class="radio-now-playing"><span>Selected song</span><p id="song-title" class="song-title">Mujhse Mohabbat Ka</p></div>
+          <div class="radio-controls">
+            <button id="song-prev" type="button" aria-label="Previous song"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M19 5 8 12l11 7V5Z"/><path d="M5 5v14"/></svg></button>
+            <button id="song-play" type="button" aria-label="Play music"><svg class="icon-play" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m8 5 11 7-11 7V5Z"/></svg><svg class="icon-pause" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M8 5v14M16 5v14"/></svg></button>
+            <button id="song-next" type="button" aria-label="Next song"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m5 5 11 7-11 7V5Z"/><path d="M19 5v14"/></svg></button>
+          </div>
+        </div>
+        <div class="radio-list-heading"><span>Songs in this mix</span><span>20 tracks · Shuffle on</span></div>
+        <div id="song-list" class="song-list" aria-label="Jump to a song"></div>
+      </section>
+      <div id="youtube-player" class="youtube-player" aria-hidden="true"></div>
+    </div>
+    <script type="module" src="/src/photo-main.js?v=94"></script>
+  </body>
+</html>
