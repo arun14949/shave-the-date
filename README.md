@@ -21,7 +21,7 @@ npm test
 
 The active game uses `index.html`, `src/photo-main.js`, the other `src/` modules, and the portrait and sound files in `assets/`. `assets/source/` contains the aligned photo edits used to make the hair and beard layers. The `tools/` scripts can regenerate those layers. The older Three.js prototype is retained in `src/main.js`, `src/realistic-avatar.js`, and `vendor/`, but is not loaded by the current site.
 
-Sound effects are generated with ElevenLabs. The public `assets/sfx/manifest.json` embeds the audio needed by the game; no API key is sent to the browser. To generate replacement sounds, install dependencies, complete ElevenLabs onboarding locally, and run `npm run generate:sfx`. Keep `.env.local` private. The optional face-building helper also requires a separately downloaded MediaPipe Face Landmarker model in `tools/models/`.
+Sound effects and three original barbershop tracks are generated with ElevenLabs. The radio attempts the selected YouTube mix and switches to the original tracks when that video cannot be embedded. The public `assets/sfx/manifest.json` embeds the sound effects needed by the game; no API key is sent to the browser. To regenerate audio, install dependencies, complete ElevenLabs onboarding locally, then run `npm run generate:sfx` or `npm run generate:music`. Keep `.env.local` private. The optional face-building helper also requires a separately downloaded MediaPipe Face Landmarker model in `tools/models/`.
 
 ## License and media
 

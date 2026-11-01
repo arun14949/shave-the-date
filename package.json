@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "python3 -m http.server 5173 --bind 127.0.0.1",
     "generate:sfx": "node --env-file=.env.local tools/generate-sfx.mjs",
+    "generate:music": "node --env-file=.env.local tools/generate-barbershop-music.mjs",
     "generate:spray": "node --env-file=.env.local tools/generate-water-spray.mjs",
     "check": "node --check src/photo-main.js && node --check src/eye-animation.js && node --check src/photo-game.js && node --check src/barber-sounds.js && node --check src/barber-haptics.js && node --check src/barbershop-radio.js && node --check src/water-spray.js && node --check src/verdict.js",
     "test": "node --test"
