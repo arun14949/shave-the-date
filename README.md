@@ -25,4 +25,4 @@ Sound effects are generated with ElevenLabs. The public `assets/sfx/manifest.jso
 
 ## License and media
 
-The original source code is available under the [MIT License](LICENSE). Aakash's portrait and edited layers, generated sound effects, and other media are included to run this demo but are **not licensed for reuse in other projects**. The bundled Three.js files retain their own [license](vendor/THREE-LICENSE).
+The original source code is available under the [MIT License](LICENSE). Aakash's portrait and edited layers, generated sound effects, and other media are included to run this demo but are **not licensed for reuse in other projects**. The barbershop songs are third-party recordings used in the deployed site; they are not included in this repository or covered by the code license. The bundled Three.js files retain their own [license](vendor/THREE-LICENSE).

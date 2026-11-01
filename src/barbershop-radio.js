@@ -1,5 +1,3 @@
-const VIDEO_ID = 'uIYFObB-yv0';
-
 export const SONGS = [
   ['Mujhse Mohabbat Ka', 0],
   ['Dil Deta Hai Ro Ro Duhai - Pankaj', 308],
@@ -30,10 +28,10 @@ export function songIndexAt(seconds) {
   return 0;
 }
 
-export function openingTimeAt(index, fraction, videoDuration = 0) {
+export function openingTimeAt(index, fraction, mixDuration = 0) {
   const start = SONGS[index][1];
   const nextStart = SONGS[index + 1]?.[1];
-  const end = nextStart ?? (videoDuration > start ? videoDuration : start + 240);
+  const end = nextStart ?? (mixDuration > start ? mixDuration : start + 240);
   const middle = Math.max(.3, Math.min(.7, fraction));
   return Math.round(start + (end - start) * middle);
 }
@@ -55,10 +53,12 @@ export function createShuffleBag(count, random = Math.random) {
       }
       return deck.pop();
     },
-    remove(index) {
-      deck = deck.filter(song => song !== index);
-    },
+    remove(index) { deck = deck.filter(song => song !== index); },
   };
+}
+
+export function songAudioUrl(index, half = 0) {
+  return `/assets/music/song-${String(index).padStart(2, '0')}-${half ? 'b' : 'a'}.mp3`;
 }
 
 export function createBarbershopRadio() {
@@ -71,18 +71,14 @@ export function createBarbershopRadio() {
   const play = document.querySelector('#song-play');
   const prev = document.querySelector('#song-prev');
   const next = document.querySelector('#song-next');
+  const audio = document.querySelector('#barbershop-audio');
   const shuffle = createShuffleBag(SONGS.length);
   const history = [];
   const rows = [];
-  let player;
-  let ready = false;
   let started = false;
-  let playing = false;
   let selected = 0;
+  let currentHalf = 0;
   let open = false;
-  let hasPlayed = false;
-  let openingFraction = .5;
-  let seekHoldUntil = 0;
 
   for (let index = 0; index < SONGS.length; index++) {
     const row = document.createElement('button');
@@ -133,14 +129,9 @@ export function createBarbershopRadio() {
     toggle.setAttribute('aria-label', open ? 'Close music' : 'Open music');
   }
 
-  function setOpen(next) {
-    open = next;
-    if (open && started && ready && !playing) {
-      if (!hasPlayed) player.seekTo(openingTimeAt(selected, openingFraction, player.getDuration()), true);
-      hasPlayed = true;
-      player.playVideo();
-    }
-    updatePlay();
+  function setOpen(nextOpen) {
+    open = nextOpen;
+    syncSheet();
     if (open) close.focus();
     else toggle.focus();
   }
@@ -152,107 +143,67 @@ export function createBarbershopRadio() {
     if (open && event.key === 'Escape') setOpen(false);
   });
   showSong(0);
+  syncSheet();
 
   function updatePlay() {
+    const playing = !audio.paused && !audio.ended;
     play.setAttribute('aria-label', playing ? 'Pause music' : 'Play music');
     card.classList.toggle('is-playing', playing);
     toggle.classList.toggle('is-playing', playing);
-    syncSheet();
+  }
+
+  function playAudio() {
+    const attempt = audio.play();
+    attempt?.catch(() => updatePlay());
+  }
+
+  function loadSong(index, half = 0) {
+    showSong(index);
+    currentHalf = half;
+    audio.src = songAudioUrl(selected, half);
+    audio.load();
+    // Call play during the user's click so mobile browsers grant audio permission.
+    playAudio();
   }
 
   function jump(index, remember = true) {
     if (remember && started && index !== selected) history.push(selected);
-    showSong(index);
-    seekHoldUntil = performance.now() + 1600;
-    if (!ready) return;
-    if (started) {
-      hasPlayed = true;
-    }
-    player.seekTo(SONGS[selected][1], true);
-    if (started) player.playVideo();
+    started = true;
+    loadSong(index);
   }
 
-  function nextRandom() {
-    jump(shuffle.next(selected));
-  }
+  function nextRandom() { jump(shuffle.next(selected)); }
 
-  function bootPlayer() {
-    if (!window.YT?.Player) return;
-    player = new window.YT.Player('youtube-player', {
-      width: '1', height: '1', videoId: VIDEO_ID,
-      playerVars: { playsinline: 1, controls: 0, rel: 0, origin: location.origin },
-      events: {
-        onReady(event) {
-          ready = true;
-          event.target.setVolume(65);
-          if (started) {
-            hasPlayed = true;
-            event.target.seekTo(openingTimeAt(selected, openingFraction, event.target.getDuration()), true);
-            event.target.playVideo();
-          }
-        },
-        onStateChange(event) {
-          if (event.data === window.YT.PlayerState.PLAYING) {
-            playing = true;
-          }
-          if (event.data === window.YT.PlayerState.PAUSED) {
-            playing = false;
-          }
-          updatePlay();
-          if (event.data === window.YT.PlayerState.ENDED) nextRandom();
-        },
-        onError() {
-          playing = false;
-          updatePlay();
-          title.textContent = 'Music unavailable right now';
-        },
-      },
-    });
-  }
-
-  const oldReady = window.onYouTubeIframeAPIReady;
-  window.onYouTubeIframeAPIReady = () => { oldReady?.(); bootPlayer(); };
-  if (window.YT?.Player) bootPlayer();
-  else {
-    const script = document.createElement('script');
-    script.src = 'https://www.youtube.com/iframe_api';
-    script.async = true;
-    document.head.append(script);
-  }
+  audio.addEventListener('play', updatePlay);
+  audio.addEventListener('pause', updatePlay);
+  audio.addEventListener('playing', updatePlay);
+  audio.addEventListener('ended', () => {
+    if (currentHalf === 0) loadSong(selected, 1);
+    else nextRandom();
+  });
+  audio.addEventListener('error', () => {
+    updatePlay();
+    title.textContent = 'Music unavailable right now';
+  });
 
   prev.addEventListener('click', () => {
     if (history.length) jump(history.pop(), false);
   });
   next.addEventListener('click', nextRandom);
   play.addEventListener('click', () => {
-    if (!ready) return;
-    started = true;
-    if (playing) player.pauseVideo();
-    else {
-      hasPlayed = true;
-      player.playVideo();
-    }
+    if (!started) {
+      started = true;
+      loadSong(shuffle.next());
+    } else if (audio.paused) playAudio();
+    else audio.pause();
   });
-  setInterval(() => {
-    if (!ready || !playing) return;
-    const current = player.getCurrentTime();
-    if (!Number.isFinite(current) || performance.now() < seekHoldUntil) return;
-    const end = SONGS[selected + 1]?.[1] ?? player.getDuration();
-    if (Number.isFinite(end) && end > 0 && current >= end - .15) nextRandom();
-  }, 350);
 
   return {
     start() {
       if (started) return;
       started = true;
-      showSong(shuffle.next(0));
-      openingFraction = .3 + Math.random() * .4;
-      if (ready) {
-        hasPlayed = true;
-        seekHoldUntil = performance.now() + 1600;
-        player.seekTo(openingTimeAt(selected, openingFraction, player.getDuration()), true);
-        player.playVideo();
-      }
+      const index = shuffle.next();
+      loadSong(index, 1);
     },
   };
 }

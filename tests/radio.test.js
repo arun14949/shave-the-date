@@ -1,13 +1,23 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { SONGS, songIndexAt, openingTimeAt, createShuffleBag } from '../src/barbershop-radio.js';
+import { SONGS, songIndexAt, openingTimeAt, createShuffleBag, songAudioUrl } from '../src/barbershop-radio.js';
 
-test('YouTube chapter boundaries select the song that is actually playing', () => {
+test('chapter boundaries select the song that is actually playing', () => {
   assert.equal(SONGS.length, 20);
   for (let index = 0; index < SONGS.length; index++) {
     const [, start] = SONGS[index];
     assert.equal(songIndexAt(start), index);
     if (index > 0) assert.equal(songIndexAt(start - 1), index - 1);
+  }
+});
+
+test('every chapter maps to two half-song files for instant midpoint playback', () => {
+  for (let index = 0; index < SONGS.length; index++) {
+    for (let half = 0; half < 2; half++) {
+      const url = songAudioUrl(index, half);
+      assert.match(url, /^\/assets\/music\/song-\d\d-[ab]\.mp3$/);
+    }
+    assert.notEqual(songAudioUrl(index, 0), songAudioUrl(index, 1));
   }
 });
 

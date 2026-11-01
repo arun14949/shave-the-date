@@ -4,6 +4,7 @@ __pycache__/
 .DS_Store
 dist/
 *.zip
+assets/music/
 tools/models/*.task
 # Local secrets written by `elevenlabs onboard` or other tooling
 .env
