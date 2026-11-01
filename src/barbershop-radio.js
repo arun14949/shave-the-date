@@ -30,6 +30,14 @@ export function songIndexAt(seconds) {
   return 0;
 }
 
+export function openingTimeAt(index, fraction, videoDuration = 0) {
+  const start = SONGS[index][1];
+  const nextStart = SONGS[index + 1]?.[1];
+  const end = nextStart ?? (videoDuration > start ? videoDuration : start + 240);
+  const middle = Math.max(.3, Math.min(.7, fraction));
+  return Math.round(start + (end - start) * middle);
+}
+
 export function createShuffleBag(count, random = Math.random) {
   let deck = [];
   return {
@@ -73,6 +81,7 @@ export function createBarbershopRadio() {
   let selected = 0;
   let open = false;
   let hasPlayed = false;
+  let openingFraction = .5;
   let seekHoldUntil = 0;
 
   for (let index = 0; index < SONGS.length; index++) {
@@ -127,7 +136,7 @@ export function createBarbershopRadio() {
   function setOpen(next) {
     open = next;
     if (open && started && ready && !playing) {
-      if (!hasPlayed) player.seekTo(SONGS[selected][1], true);
+      if (!hasPlayed) player.seekTo(openingTimeAt(selected, openingFraction, player.getDuration()), true);
       hasPlayed = true;
       player.playVideo();
     }
@@ -178,7 +187,7 @@ export function createBarbershopRadio() {
           event.target.setVolume(65);
           if (started) {
             hasPlayed = true;
-            event.target.seekTo(SONGS[selected][1], true);
+            event.target.seekTo(openingTimeAt(selected, openingFraction, event.target.getDuration()), true);
             event.target.playVideo();
           }
         },
@@ -237,10 +246,11 @@ export function createBarbershopRadio() {
       if (started) return;
       started = true;
       showSong(shuffle.next(0));
+      openingFraction = .3 + Math.random() * .4;
       if (ready) {
         hasPlayed = true;
         seekHoldUntil = performance.now() + 1600;
-        player.seekTo(SONGS[selected][1], true);
+        player.seekTo(openingTimeAt(selected, openingFraction, player.getDuration()), true);
         player.playVideo();
       }
     },

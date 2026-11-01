@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { SONGS, songIndexAt, createShuffleBag } from '../src/barbershop-radio.js';
+import { SONGS, songIndexAt, openingTimeAt, createShuffleBag } from '../src/barbershop-radio.js';
 
 test('YouTube chapter boundaries select the song that is actually playing', () => {
   assert.equal(SONGS.length, 20);
@@ -9,6 +9,18 @@ test('YouTube chapter boundaries select the song that is actually playing', () =
     assert.equal(songIndexAt(start), index);
     if (index > 0) assert.equal(songIndexAt(start - 1), index - 1);
   }
+});
+
+test('opening the barbershop starts inside a song, away from chapter boundaries', () => {
+  for (let index = 0; index < SONGS.length - 1; index++) {
+    const start = SONGS[index][1];
+    const end = SONGS[index + 1][1];
+    const opening = openingTimeAt(index, .5);
+    assert.ok(opening > start + 30);
+    assert.ok(opening < end - 30);
+    assert.equal(songIndexAt(opening), index);
+  }
+  assert.equal(openingTimeAt(SONGS.length - 1, .5, 7300), 7144);
 });
 
 test('shuffle plays every chapter once before repeating and avoids an immediate replay', () => {
