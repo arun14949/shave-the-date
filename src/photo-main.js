@@ -121,6 +121,7 @@ let hairImage;
 let mediumHairImage;
 let buzzHairImage;
 let outsideBuzzMask;
+let outsideMediumMask;
 let beardImage;
 let thickImage;
 let cleanSideburnImage;
@@ -135,7 +136,8 @@ try {
     loadImage('/assets/source/aakash-clean-sideburns-generated.png?v=1'),
     baseReady,
   ]);
-  outsideBuzzMask = makeOutsideBuzzMask(buzzHairImage);
+  outsideBuzzMask = makeOutsideHairMask(buzzHairImage, BUZZ_CROWN_TOP);
+  outsideMediumMask = makeOutsideHairMask(mediumHairImage);
   const sample = document.createElement('canvas');
   sample.width = WIDTH; sample.height = HEIGHT;
   const sampleContext = sample.getContext('2d', { willReadFrequently: true });
@@ -219,9 +221,14 @@ function resetLayers() {
   shortHairContext.drawImage(buzzHairImage, 0, 0);
   shortHairContext.globalCompositeOperation = 'source-over';
   shortHairContext.clearRect(0, 0, WIDTH, BUZZ_CROWN_TOP);
-  mediumHairContext.globalAlpha = .72;
+  // Keep the intermediate haircut fully opaque. Partial 4 mm passes reveal
+  // this layer, so transparency makes its crown look like a grey halo.
   mediumHairContext.drawImage(mediumHairImage, 0, 0);
-  mediumHairContext.globalAlpha = 1;
+  // The short-hair photo has no pixels at some outer curls. Fill those gaps
+  // with the original dark hair until a completed pass releases the strands.
+  mediumHairContext.globalCompositeOperation = 'destination-over';
+  mediumHairContext.drawImage(hairImage, 0, 0);
+  mediumHairContext.globalCompositeOperation = 'source-over';
   hairContext.drawImage(hairImage, 0, 0);
   // The thick portrait extends beyond the jaw. Only the outermost layer may
   // contain those long fibers; carrying them into shorter layers makes a
@@ -239,7 +246,7 @@ function brushNoise(x, y, seed) {
   return ((value ^ (value >>> 16)) >>> 0) / 4294967295;
 }
 
-function makeOutsideBuzzMask(image) {
+function makeOutsideHairMask(image, crownTop = 0) {
   const canvas = document.createElement('canvas');
   canvas.width = WIDTH;
   canvas.height = HEIGHT;
@@ -253,19 +260,19 @@ function makeOutsideBuzzMask(image) {
     const t = Math.max(0, Math.min(1, (coverage - .02) / .16));
     pixels.data[index + 3] = Math.round(255 * (1 - t * t * (3 - 2 * t)));
   }
-  for (let y = 0; y < BUZZ_CROWN_TOP; y++) for (let x = 0; x < WIDTH; x++) pixels.data[(y * WIDTH + x) * 4 + 3] = 255;
+  for (let y = 0; y < crownTop; y++) for (let x = 0; x < WIDTH; x++) pixels.data[(y * WIDTH + x) * 4 + 3] = 255;
   context.putImageData(pixels, 0, 0);
   return canvas;
 }
 
-function eraseUnanchoredHair(cells, center, radius, shape = 'scissors') {
+function eraseUnanchoredHair(cells, center, radius, shape = 'scissors', mask = outsideBuzzMask) {
   if (!cells.length) return;
   // Prune unsupported outer strands only where the highlighted brush touches.
   for (const context of [hairContext, mediumHairContext, shortHairContext]) {
     context.save();
     clipToolArea(context, center, radius, shape);
     context.globalCompositeOperation = 'destination-out';
-    context.drawImage(outsideBuzzMask, 0, 0);
+    context.drawImage(mask, 0, 0);
     context.restore();
   }
 }
@@ -630,16 +637,17 @@ function applyStroke(clientX, clientY) {
   }
   if (tool === 'trimmer') {
     if (gentleFour) {
-      for (const [pass, strength] of [[1, .2], [2, .32], [3, 1]]) {
-        eraseCells(hairContext, changes.longHair.filter(cell => cell.fourMmPasses === pass),
-          point, radius, direction, strength, 'trimmer');
-      }
+      // Keep the original dark strands intact on the light passes. Overlapping
+      // brush stamps compound even a weak erase into a transparent grey notch.
+      // The third visit cuts the cell to the 4 mm layer in one bounded stroke.
+      eraseCells(hairContext, changes.longHair.filter(cell => cell.fourMmPasses >= 3),
+        point, radius, direction, 1, 'trimmer');
     } else eraseCells(hairContext, changes.longHair, point, radius, direction, 1, 'trimmer');
     eraseCells(mediumHairContext, changes.mediumHair, point, radius, direction, 1, 'trimmer');
     eraseCells(shortHairContext, changes.shortHair, point, radius, direction, 1, 'trimmer');
     eraseCells(stubbleHairContext, changes.stubbleHair, point, radius, direction, 1, 'trimmer');
-    eraseUnanchoredHair([...changes.fourMmFinished, ...changes.mediumHair,
-      ...changes.shortHair], point, radius, 'trimmer');
+    eraseUnanchoredHair(changes.fourMmFinished, point, radius, 'trimmer', outsideMediumMask);
+    eraseUnanchoredHair([...changes.mediumHair, ...changes.shortHair], point, radius, 'trimmer');
     eraseDetachedHair(changes.hairFringe);
     eraseBeardCells(thickContext, changes.beardRetouch.thick, point, radius, 'trimmer');
     eraseBeardCells(fullContext, changes.beardRetouch.full, point, radius, 'trimmer');
