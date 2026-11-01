@@ -175,7 +175,7 @@ export function createBarbershopRadio() {
       events: {
         onReady(event) {
           ready = true;
-          event.target.setVolume(18);
+          event.target.setVolume(65);
           if (started) {
             hasPlayed = true;
             event.target.seekTo(SONGS[selected][1], true);
@@ -236,7 +236,7 @@ export function createBarbershopRadio() {
     start() {
       if (started) return;
       started = true;
-      showSong(shuffle.next());
+      showSong(shuffle.next(0));
       if (ready) {
         hasPlayed = true;
         seekHoldUntil = performance.now() + 1600;

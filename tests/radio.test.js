@@ -13,7 +13,8 @@ test('YouTube chapter boundaries select the song that is actually playing', () =
 
 test('shuffle plays every chapter once before repeating and avoids an immediate replay', () => {
   const bag = createShuffleBag(SONGS.length, () => .5);
-  const firstRun = Array.from({ length: SONGS.length }, () => bag.next());
+  const firstRun = [bag.next(0), ...Array.from({ length: SONGS.length - 1 }, () => bag.next())];
+  assert.notEqual(firstRun[0], 0);
   assert.equal(new Set(firstRun).size, SONGS.length);
   const next = bag.next(firstRun.at(-1));
   assert.notEqual(next, firstRun.at(-1));
