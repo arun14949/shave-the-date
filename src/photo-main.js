@@ -1,4 +1,4 @@
-import { createPhotoGame, GRID_STEP, bladeFootprint, trimmerFootprint } from './photo-game.js?v=40';
+import { createPhotoGame, GRID_STEP, bladeFootprint, trimmerFootprint } from './photo-game.js?v=41';
 import { createBarberSounds } from './barber-sounds.js?v=9';
 import { createBarberHaptics } from './barber-haptics.js?v=1';
 import { startEyeAnimation } from './eye-animation.js?v=1';
@@ -585,7 +585,7 @@ function applyStroke(clientX, clientY) {
     eraseCells(mediumHairContext, changes.mediumHair, point, radius, direction, 1, 'trimmer');
     eraseCells(shortHairContext, changes.shortHair, point, radius, direction, 1, 'trimmer');
     eraseCells(stubbleHairContext, changes.stubbleHair, point, radius, direction, 1, 'trimmer');
-    eraseUnanchoredHair([...changes.mediumHair, ...changes.shortHair], point, radius, 'trimmer');
+    eraseUnanchoredHair([...changes.longHair, ...changes.mediumHair, ...changes.shortHair], point, radius, 'trimmer');
     eraseDetachedHair(changes.hairFringe);
     eraseBeardCells(thickContext, changes.beardRetouch.thick, point, radius, 'trimmer');
     eraseBeardCells(fullContext, changes.beardRetouch.full, point, radius, 'trimmer');

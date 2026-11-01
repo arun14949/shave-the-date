@@ -344,7 +344,7 @@ export function createPhotoGame(beardPixels, width, height, hairPixels = null, c
         if (tool === 'blade' || (guarded && guardMm <= 1 && previousGuard > 1)) changes.stubbleHair.push(cell);
         if (cell.state === 3) changes.buzzHair.push(cell);
         if (cell.state === 3) changes.fineHair.push(cell);
-        if ((cell.state >= 2 || (guarded && guardMm <= 3)) && !cell.hairFringeCleared) {
+        if ((cell.state >= 2 || guarded) && !cell.hairFringeCleared) {
           cell.hairFringeCleared = true;
           for (const tip of hairFringe.get(cell) || []) {
             // Once the root is gone, its outer strands are no longer attached.
