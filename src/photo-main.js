@@ -2,7 +2,7 @@ import { createPhotoGame, GRID_STEP, bladeFootprint, trimmerFootprint } from './
 import { createBarberSounds } from './barber-sounds.js?v=9';
 import { createBarberHaptics } from './barber-haptics.js?v=1';
 import { startEyeAnimation } from './eye-animation.js?v=1';
-import { createBarbershopRadio } from './barbershop-radio.js?v=15';
+import { createBarbershopRadio } from './barbershop-radio.js?v=16';
 import { createWaterSpray } from './water-spray.js?v=6';
 
 const $ = selector => document.querySelector(selector);
@@ -163,7 +163,7 @@ try {
   paintCleanSideburns();
   resetLayers();
   loading.classList.add('is-hidden');
-  await soundsReady;
+  await Promise.all([soundsReady, radio.ready()]);
   startButton.disabled = false;
   startEyeAnimation($('#eye-layer'), stage).catch(error => console.warn('Eye sprites could not load', error));
 } catch (error) {

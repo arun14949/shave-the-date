@@ -58,7 +58,7 @@ export function createShuffleBag(count, random = Math.random) {
 }
 
 export function songAudioUrl(index, half = 0) {
-  return `/assets/music/song-${String(index).padStart(2, '0')}-${half ? 'b' : 'a'}.m4a`;
+  return `/assets/music/song-${String(index).padStart(2, '0')}-${half ? 'b' : 'a'}.json`;
 }
 
 export function createBarbershopRadio() {
@@ -79,6 +79,33 @@ export function createBarbershopRadio() {
   let selected = 0;
   let currentHalf = 0;
   let open = false;
+  let loadId = 0;
+  const sources = new Map();
+  const openingIndex = shuffle.next();
+
+  function getSource(index, half) {
+    const url = songAudioUrl(index, half);
+    if (!sources.has(url)) {
+      const entry = { src: null, promise: null };
+      entry.promise = fetch(url).then(response => {
+        if (!response.ok) throw new Error(`Song unavailable: ${response.status}`);
+        return response.json();
+      }).then(data => {
+        if (typeof data.src !== 'string' || !data.src.startsWith('data:audio/mp4;base64,')) {
+          throw new Error('Invalid song data');
+        }
+        entry.src = data.src;
+        return entry.src;
+      }).catch(error => {
+        sources.delete(url);
+        throw error;
+      });
+      sources.set(url, entry);
+    }
+    return sources.get(url);
+  }
+
+  const openingReady = getSource(openingIndex, 1).promise.catch(() => null);
 
   for (let index = 0; index < SONGS.length; index++) {
     const row = document.createElement('button');
@@ -160,10 +187,22 @@ export function createBarbershopRadio() {
   function loadSong(index, half = 0) {
     showSong(index);
     currentHalf = half;
-    audio.src = songAudioUrl(selected, half);
-    audio.load();
-    // Call play during the user's click so mobile browsers grant audio permission.
-    playAudio();
+    const currentLoad = ++loadId;
+    const entry = getSource(selected, half);
+    const begin = src => {
+      if (currentLoad !== loadId) return;
+      audio.src = src;
+      audio.load();
+      playAudio();
+      if (half === 0) getSource(index, 1).promise.catch(() => null);
+    };
+    if (entry.src) begin(entry.src);
+    else {
+      audio.pause();
+      entry.promise.then(begin).catch(() => {
+        if (currentLoad === loadId) title.textContent = 'Music unavailable right now';
+      });
+    }
   }
 
   function jump(index, remember = true) {
@@ -199,11 +238,11 @@ export function createBarbershopRadio() {
   });
 
   return {
+    ready() { return openingReady; },
     start() {
       if (started) return;
       started = true;
-      const index = shuffle.next();
-      loadSong(index, 1);
+      loadSong(openingIndex, 1);
     },
   };
 }
