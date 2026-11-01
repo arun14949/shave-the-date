@@ -15,7 +15,7 @@ test('every chapter maps to two half-song files for instant midpoint playback', 
   for (let index = 0; index < SONGS.length; index++) {
     for (let half = 0; half < 2; half++) {
       const url = songAudioUrl(index, half);
-      assert.match(url, /^\/assets\/music\/song-\d\d-[ab]\.mp3$/);
+      assert.match(url, /^\/assets\/music\/song-\d\d-[ab]\.m4a$/);
     }
     assert.notEqual(songAudioUrl(index, 0), songAudioUrl(index, 1));
   }

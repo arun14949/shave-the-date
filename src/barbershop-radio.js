@@ -58,7 +58,7 @@ export function createShuffleBag(count, random = Math.random) {
 }
 
 export function songAudioUrl(index, half = 0) {
-  return `/assets/music/song-${String(index).padStart(2, '0')}-${half ? 'b' : 'a'}.mp3`;
+  return `/assets/music/song-${String(index).padStart(2, '0')}-${half ? 'b' : 'a'}.m4a`;
 }
 
 export function createBarbershopRadio() {
