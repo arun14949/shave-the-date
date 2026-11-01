@@ -116,7 +116,7 @@ test('a 3 mm guard releases outer strands when their scalp root is cut', () => {
   assert.ok(cut.hairFringe.every(cell => cell.state >= 2));
 });
 
-test('a 4 mm guard releases outer strands while keeping the medium haircut', () => {
+test('a 4 mm guard takes three passes before releasing outer strands', () => {
   const width = 1086, height = 1448;
   const hair = new Uint8ClampedArray(width * height * 4);
   const buzz = new Uint8ClampedArray(width * height * 4);
@@ -125,11 +125,30 @@ test('a 4 mm guard releases outer strands while keeping the medium haircut', () 
     if (y >= 200) buzz[(y * width + x) * 4 + 3] = 255;
   }
   const game = createPhotoGame(null, width, height, hair, null, null, buzz);
-  const cut = game.stroke(510, 215, 'trimmer', 38, 1, 4);
-  assert.ok(cut.longHair.length > 0);
+  const first = game.stroke(510, 215, 'trimmer', 38, 1, 4);
+  assert.ok(first.longHair.length > 0);
+  assert.ok(first.longHair.every(cell => cell.fourMmPasses === 1 && cell.state === 0));
+  assert.equal(first.hairFringe.length, 0);
+  assert.equal(game.stroke(510, 215, 'trimmer', 38, 1, 4).longHair.length, 0);
+  const second = game.stroke(510, 215, 'trimmer', 38, 2, 4);
+  assert.ok(second.longHair.every(cell => cell.fourMmPasses === 2 && cell.state === 0));
+  assert.equal(second.hairFringe.length, 0);
+  const cut = game.stroke(510, 215, 'trimmer', 38, 3, 4);
+  assert.ok(cut.longHair.some(cell => cell.fourMmPasses === 3 && cell.state >= 1));
+  assert.ok(cut.fourMmFinished.length > 0);
   assert.equal(cut.mediumHair.length, 0);
   assert.ok(cut.hairFringe.some(cell => cell.y < 175));
-  assert.equal(game.stroke(510, 125, 'scissors', 20, 2).longHair.length, 0);
+  assert.equal(game.stroke(510, 125, 'scissors', 20, 4).longHair.length, 0);
+});
+
+test('moving away and back counts a new 4 mm pass within one drag', () => {
+  const game = masks();
+  const first = game.stroke(500, 250, 'trimmer', 40, 1, 4);
+  assert.ok(first.longHair.length > 0);
+  assert.equal(game.stroke(500, 250, 'trimmer', 40, 1, 4).longHair.length, 0);
+  game.stroke(850, 1050, 'trimmer', 40, 1, 4);
+  const second = game.stroke(500, 250, 'trimmer', 40, 1, 4);
+  assert.ok(second.longHair.some(cell => cell.fourMmPasses === 2));
 });
 
 test('a suspended hair patch drops when its last stem is trimmed', () => {

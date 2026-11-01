@@ -43,6 +43,7 @@ function createField(pixels, width, height, bounds) {
         }
         if (alpha <= 3) continue;
         const cell = { x: gx * STEP + STEP / 2, y: gy * STEP + STEP / 2, alpha, state: 0, lastStroke: -1,
+          fourMmPasses: 0,
           fringeCleared: false, guardMm: Infinity,
           visualThickStroke: -1, visualFullStroke: -1, visualShortStroke: -1,
           visualThickAmount: 0, visualFullAmount: 0, visualShortAmount: 0 };
@@ -196,6 +197,8 @@ export function createPhotoGame(beardPixels, width, height, hairPixels = null, c
   let lastCutAttemptStroke = -1;
   let automaticStrokeId = 0;
   const bladeVisits = [];
+  const fourMmContacts = new Set();
+  let fourMmStrokeId = -1;
   function isBareFace(x, y) {
     if (x < 185 || x > 900 || y < 540 || y > 1130) return false;
     const cell = beard.cellAt(x, y);
@@ -254,7 +257,7 @@ export function createPhotoGame(beardPixels, width, height, hairPixels = null, c
       const guardState = guarded ? (guardMm <= 2 ? 2 : 1) : null;
       const changes = { thick: [], full: [], short: [], beardRetouch: { thick: [], full: [], short: [] },
         beardGuardFull: [], beardGuardShort: [], beardFringe: [], beardOrphans: [], hairFringe: [],
-        longHair: [], mediumHair: [], shortHair: [], stubbleHair: [], buzzHair: [], fineHair: [] };
+        longHair: [], fourMmFinished: [], mediumHair: [], shortHair: [], stubbleHair: [], buzzHair: [], fineHair: [] };
       const bladeShape = tool === 'blade' ? bladeFootprint(radius) : null;
       const trimmerShape = tool === 'trimmer' ? trimmerFootprint(radius) : null;
       const insideFootprint = cell => bladeShape
@@ -325,19 +328,35 @@ export function createPhotoGame(beardPixels, width, height, hairPixels = null, c
       else if (trimmerShape) hair.inRect(x, y, trimmerShape.halfWidth, trimmerShape.halfHeight,
         cell => { if (trimmerDepth(cell.x, cell.y, x, y, radius) >= STEP * Math.SQRT2 / 2) hairTargets.add(cell); }, true);
       else hair.around(x, y, radius, cell => hairTargets.add(cell), true);
+      if (guarded && guardMm === 4) {
+        if (fourMmStrokeId !== strokeId) { fourMmContacts.clear(); fourMmStrokeId = strokeId; }
+        for (const cell of fourMmContacts) if (!hairTargets.has(cell)) fourMmContacts.delete(cell);
+      }
       for (const cell of hairTargets) {
-        if (cell.lastStroke === strokeId || cell.state >= 3) continue;
+        const progressiveFour = guarded && guardMm === 4 && cell.state === 0;
+        if (cell.state >= 3 || (cell.lastStroke === strokeId && !progressiveFour)) continue;
         if (tool !== 'scissors' && tool !== 'trimmer' && tool !== 'blade') continue;
         // Scissors leave a medium cut; the trimmer leaves a short, visible cut.
         // Only the blade can expose the clean scalp.
         if ((tool === 'scissors' && cell.state >= 1)
           || (tool === 'trimmer' && !guarded && cell.state >= 2)
-          || (guarded && guardMm >= cell.guardMm)) continue;
+          || (guarded && guardMm >= cell.guardMm)
+          || (progressiveFour && fourMmContacts.has(cell))) continue;
         const before = cell.state;
         const previousGuard = cell.guardMm;
+        if (progressiveFour) {
+          fourMmContacts.add(cell);
+          cell.fourMmPasses = Math.min(3, cell.fourMmPasses + 1);
+          if (cell.fourMmPasses < 3) {
+            cell.lastStroke = strokeId;
+            changes.longHair.push(cell);
+            continue;
+          }
+        }
         cell.state = tool === 'blade' ? 3 : guarded ? Math.max(before, guardState) : before + 1;
         if (guarded) cell.guardMm = guardMm;
         cell.lastStroke = strokeId;
+        if (guarded && guardMm === 4) changes.fourMmFinished.push(cell);
         if (before === 0 && cell.state >= 1) changes.longHair.push(cell);
         if (tool === 'blade' || (guarded ? guardMm <= 3 && previousGuard > 3 : before <= 1 && cell.state >= 2)) changes.mediumHair.push(cell);
         if (tool === 'blade' || (guarded ? guardMm <= 2 && previousGuard > 2 : before <= 1 && cell.state >= 2)) changes.shortHair.push(cell);
@@ -382,7 +401,7 @@ export function createPhotoGame(beardPixels, width, height, hairPixels = null, c
     },
     reset() {
       for (const cell of [...beard.cells, ...hair.cells]) {
-        cell.state = 0; cell.lastStroke = -1; cell.fringeCleared = false; cell.hairFringeCleared = false; cell.guardMm = Infinity;
+        cell.state = 0; cell.lastStroke = -1; cell.fringeCleared = false; cell.hairFringeCleared = false; cell.guardMm = Infinity; cell.fourMmPasses = 0;
         cell.visualThickStroke = cell.visualFullStroke = cell.visualShortStroke = -1;
         cell.visualThickAmount = cell.visualFullAmount = cell.visualShortAmount = 0;
       }
@@ -390,6 +409,8 @@ export function createPhotoGame(beardPixels, width, height, hairPixels = null, c
       cutPositions.length = 0;
       lastCutAttemptStroke = -1;
       bladeVisits.length = 0;
+      fourMmContacts.clear();
+      fourMmStrokeId = -1;
     },
     get cutCount() { return cutCount; },
     get cellCount() { return beard.cells.length; },

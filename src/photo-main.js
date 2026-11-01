@@ -1,4 +1,4 @@
-import { createPhotoGame, GRID_STEP, bladeFootprint, trimmerFootprint } from './photo-game.js?v=41';
+import { createPhotoGame, GRID_STEP, bladeFootprint, trimmerFootprint } from './photo-game.js?v=42';
 import { createBarberSounds } from './barber-sounds.js?v=9';
 import { createBarberHaptics } from './barber-haptics.js?v=1';
 import { startEyeAnimation } from './eye-animation.js?v=1';
@@ -63,7 +63,7 @@ let hairTouchedStroke = false;
 let strokeId = 0;
 const detachedBeard = new Map();
 const falling = [];
-const lastClippingTime = { hair: -Infinity, beard: -Infinity };
+const lastClippingTime = { hair: -Infinity, beard: -Infinity, fineHair: -Infinity, fineBeard: -Infinity };
 let fallingFrame = 0;
 let lastFallingFrame = 0;
 const toolAreas = { scissors: 74, trimmer: 66, blade: 46 };
@@ -466,6 +466,41 @@ function emitClippings(cells, sources, kind, force = false) {
   if (falling.length && !fallingFrame) fallingFrame = requestAnimationFrame(animateClippings);
 }
 
+function emitFineClippings(cells, point, kind, guardMm) {
+  if (!cells.length || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const key = kind === 'hair' ? 'fineHair' : 'fineBeard';
+  const now = performance.now();
+  if (now - lastClippingTime[key] < 85) return;
+  lastClippingTime[key] = now;
+  const count = Math.min(guardMm === 1 ? 2 : 3, Math.ceil(cells.length / 5));
+  const stride = Math.max(1, Math.floor(cells.length / count));
+  for (let index = 0; index < cells.length && index / stride < count; index += stride) {
+    const cell = cells[index];
+    const seed = brushNoise(cell.x, cell.y, guardMm + (kind === 'beard' ? 359 : 307));
+    const size = guardMm === 1 ? 10 : 14;
+    const image = document.createElement('canvas');
+    image.width = size;
+    image.height = size;
+    const context = image.getContext('2d');
+    context.strokeStyle = kind === 'beard' ? '#302b29' : '#272424';
+    context.lineWidth = guardMm === 1 ? 1.5 : 2;
+    context.lineCap = 'round';
+    for (let strand = 0; strand < (guardMm === 1 ? 1 : 2); strand++) {
+      const offset = (strand - .5) * 3;
+      context.beginPath();
+      context.moveTo(size * .28 + offset, size * .25);
+      context.quadraticCurveTo(size * (.5 + seed * .12) + offset, size * .45,
+        size * (.6 + seed * .12) + offset, size * .73);
+      context.stroke();
+    }
+    falling.push({ image, x: point.x - 20 - seed * 20, y: point.y + 10 + seed * 8,
+      vx: (seed - .5) * 2, vy: -.4 - seed * .7, angle: (seed - .5) * .5,
+      spin: (seed - .5) * .035, age: 0, life: 35 + seed * 10 });
+  }
+  if (falling.length > 90) falling.splice(0, falling.length - 90);
+  if (falling.length && !fallingFrame) fallingFrame = requestAnimationFrame(animateClippings);
+}
+
 function collectDetachedBeard(cells) {
   for (const cell of cells) detachedBeard.set(`${cell.x}:${cell.y}`, cell);
 }
@@ -563,10 +598,23 @@ function applyStroke(clientX, clientY) {
   const radius = toolAreas[tool];
   const madeCut = tool === 'blade' && game.tryBladeCut(x, y, strokeId);
   const changes = game.stroke(x, y, tool, radius, strokeId, tool === 'trimmer' ? trimmerGuardMm : null);
-  if (changes.longHair.length || changes.mediumHair.length || changes.shortHair.length || changes.stubbleHair.length || changes.buzzHair.length || changes.fineHair.length || changes.hairFringe.length) hairTouchedStroke = true;
+  if (changes.longHair.length || changes.fourMmFinished.length || changes.mediumHair.length || changes.shortHair.length || changes.stubbleHair.length || changes.buzzHair.length || changes.fineHair.length || changes.hairFringe.length) hairTouchedStroke = true;
   collectDetachedBeard(changes.beardOrphans);
-  emitClippings([...changes.hairFringe, ...changes.longHair], [hairContext, mediumHairContext], 'hair');
+  const fineTrim = tool === 'trimmer' && trimmerGuardMm <= 2;
+  const gentleFour = tool === 'trimmer' && trimmerGuardMm === 4;
+  const completedLongHair = gentleFour
+    ? changes.longHair.filter(cell => cell.fourMmPasses >= 3) : changes.longHair;
+  emitClippings(fineTrim ? changes.hairFringe : [...changes.hairFringe, ...completedLongHair],
+    [hairContext, mediumHairContext], 'hair');
   emitClippings(changes.beardFringe, [thickContext, fullContext, shortContext], 'beard');
+  if (gentleFour) emitFineClippings(changes.longHair.filter(cell => cell.fourMmPasses < 3),
+    point, 'hair', 2);
+  if (fineTrim) {
+    emitFineClippings(trimmerGuardMm === 1 ? changes.stubbleHair : changes.shortHair,
+      point, 'hair', trimmerGuardMm);
+    emitFineClippings(trimmerGuardMm === 1 ? changes.beardGuardShort : changes.full,
+      point, 'beard', trimmerGuardMm);
+  }
   if (tool === 'scissors') {
     eraseCells(hairContext, changes.longHair, point, radius, direction);
     eraseBeardCells(thickContext, changes.beardRetouch.thick, point, radius);
@@ -581,11 +629,17 @@ function applyStroke(clientX, clientY) {
     return;
   }
   if (tool === 'trimmer') {
-    eraseCells(hairContext, changes.longHair, point, radius, direction, 1, 'trimmer');
+    if (gentleFour) {
+      for (const [pass, strength] of [[1, .2], [2, .32], [3, 1]]) {
+        eraseCells(hairContext, changes.longHair.filter(cell => cell.fourMmPasses === pass),
+          point, radius, direction, strength, 'trimmer');
+      }
+    } else eraseCells(hairContext, changes.longHair, point, radius, direction, 1, 'trimmer');
     eraseCells(mediumHairContext, changes.mediumHair, point, radius, direction, 1, 'trimmer');
     eraseCells(shortHairContext, changes.shortHair, point, radius, direction, 1, 'trimmer');
     eraseCells(stubbleHairContext, changes.stubbleHair, point, radius, direction, 1, 'trimmer');
-    eraseUnanchoredHair([...changes.longHair, ...changes.mediumHair, ...changes.shortHair], point, radius, 'trimmer');
+    eraseUnanchoredHair([...changes.fourMmFinished, ...changes.mediumHair,
+      ...changes.shortHair], point, radius, 'trimmer');
     eraseDetachedHair(changes.hairFringe);
     eraseBeardCells(thickContext, changes.beardRetouch.thick, point, radius, 'trimmer');
     eraseBeardCells(fullContext, changes.beardRetouch.full, point, radius, 'trimmer');
@@ -594,7 +648,9 @@ function applyStroke(clientX, clientY) {
     eraseUnsupportedFringe(changes.beardFringe, point, radius, 'trimmer');
     if (changes.thick.length || changes.full.length || changes.beardGuardFull.length || changes.beardGuardShort.length
       || changes.longHair.length || changes.mediumHair.length || changes.shortHair.length || changes.stubbleHair.length) {
-      setStatus(`Trimmed with the ${trimmerGuardMm} mm guard. Switch to a smaller guard for a closer cut.`);
+      setStatus(gentleFour && changes.longHair.some(cell => cell.fourMmPasses < 3)
+        ? 'Light 4 mm trim. Pass over the same spot again for a shorter cut.'
+        : `Trimmed with the ${trimmerGuardMm} mm guard. Switch to a smaller guard for a closer cut.`);
     }
     return;
   }
