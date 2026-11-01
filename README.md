@@ -1,15 +1,28 @@
 # Shave the Date
 
-[Play the game](https://shave-the-date.app.en3.wtf/)
+A playful photo-based wedding barber game for Aakash. [Play it here](https://shave-the-date.app.en3.wtf/).
 
-The source code is available under the [MIT License](LICENSE). Aakash's portrait and its edited layers, generated sound effects, and other media are included so the demo runs, but are not licensed for reuse in other projects. The bundled Three.js files retain their own [license](vendor/THREE-LICENSE). Local credentials, build output, and deployment archives are excluded from this repository.
+Choose scissors, a trimmer, or a blade and drag across the portrait to groom his hair and beard. Scissors leave a medium cut, the trimmer has 1–4 mm guards, and the blade can shave clean. The game includes sound effects, haptics on supported devices, eye movement, a barbershop radio, and a shareable finished look.
 
-A photo-based wedding barber game for Aakash. The attached bald photograph is the unchanged base portrait. Fitted photographic hair, sideburn, full-beard, and extra-thick-beard layers sit above it. Select scissors, trimmer, or blade below the portrait. Scissors leave a medium haircut, the trimmer leaves a visible No. 1-style buzz cut, and only the blade exposes the clean scalp. The trimmer also reduces the beard from extra-thick to full to stubble. The blade clears every hair and beard layer in its path in one pass, even when the hair is thick. A narrow clean-skin image patch under the hair layers removes sideburn stubble that was baked into the bald base photo. A four-pixel interaction grid covers visible overlay tiles, including fine patches around the moustache and chin. The scalp brush clears covered tiles with tapered strands. All trimmer cleanup stays inside the highlighted brush footprint; remaining strands can be trimmed with another pass. Beard strokes keep photographic texture in each trim stage and erase it with rounded, tapered strand marks. Per-stroke coverage fades across the brush and does not accumulate into a hard edge during a drag. A blade pass on bare skin has a small chance of leaving a fine nick; marks are spaced apart and capped at three. The primary Share this look button opens the device share sheet with the portrait and production website link when available. The fallback downloads a PNG portrait with the link printed on it and copies the link to the clipboard.
+## Run locally
 
-Run `npm run dev` and open http://127.0.0.1:5173/. Click **Open the barbershop** to unlock the sounds and play the spray-bottle animation, then choose a tool and drag over Aakash's hair or beard. The music button in the tool panel opens a bottom sheet with a scrollable list of all 20 song names. Songs play in a shuffled order, with previous/next controls. Closing the sheet pauses music and hides the player. Run `npm test` and `npm run check` to verify the active game.
+No build step is needed. From the project directory:
 
-Sound playback uses generated audio for the trimmer, scissors, blade on hair, blade on bare skin, and water spray. The public `assets/sfx/manifest.json` embeds the MP3 bytes as data URLs because DropDeploy's ZIP publisher does not serve MP3 files. The game pre-decodes them, then starts playback from the start-button gesture. Web Audio synthesis remains a fallback if an asset fails to load. No ElevenLabs key is sent to the browser.
+```sh
+npm run dev
+```
 
-To generate replacement sound effects with ElevenLabs, run `npm run generate:sfx` after local onboarding has written `.env.local`. The build-time script in `tools/generate-sfx.mjs` generates four MP3 files and updates the manifest only after all four succeed. Keep `.env.local` private; production only needs the generated manifest.
+Open <http://127.0.0.1:5173/> and select **Open the barbershop** to start. To check the source and run the tests:
 
-The base image is `assets/source/aakash-bald-generated.png`, pixel-identical to the user-supplied photo. The clean sideburn edit is `assets/source/aakash-clean-sideburns-generated.png`; only two feathered narrow patches from it appear in the game. The fitted full-hair, medium-hair, buzz-cut, and beard edits are in `assets/source/`; `tools/build_photo_layers.py` extracts the aligned transparent overlays. The older 3D prototype remains in the repository for reference but is no longer loaded by the website.
+```sh
+npm run check
+npm test
+```
+
+The active game uses `index.html`, `src/photo-main.js`, the other `src/` modules, and the portrait and sound files in `assets/`. `assets/source/` contains the aligned photo edits used to make the hair and beard layers. The `tools/` scripts can regenerate those layers. The older Three.js prototype is retained in `src/main.js`, `src/realistic-avatar.js`, and `vendor/`, but is not loaded by the current site.
+
+Sound effects are generated with ElevenLabs. The public `assets/sfx/manifest.json` embeds the audio needed by the game; no API key is sent to the browser. To generate replacement sounds, install dependencies, complete ElevenLabs onboarding locally, and run `npm run generate:sfx`. Keep `.env.local` private. The optional face-building helper also requires a separately downloaded MediaPipe Face Landmarker model in `tools/models/`.
+
+## License and media
+
+The original source code is available under the [MIT License](LICENSE). Aakash's portrait and edited layers, generated sound effects, and other media are included to run this demo but are **not licensed for reuse in other projects**. The bundled Three.js files retain their own [license](vendor/THREE-LICENSE).
